@@ -1,0 +1,47 @@
+services:
+    # Default configuration for services in this bundle
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    # Makes classes in src/ available to be used as services
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Domain/Entity/'
+            - '../src/Kernel.php'
+
+    # Redis Client
+    Predis\Client:
+        arguments:
+            - 'redis://redis:6379'
+
+    # Custom Redis Cache Adapter
+    App\Infrastructure\Cache\RedisCacheAdapter:
+        arguments:
+            $redis: '@Predis\Client'
+
+    # JSON Provider with API URL
+    App\Infrastructure\Provider\JsonProvider:
+        arguments:
+            $apiUrl: '%env(PROVIDER_JSON_URL)%'
+
+    # XML Provider with Feed URL
+    App\Infrastructure\Provider\XmlProvider:
+        arguments:
+            $feedUrl: '%env(PROVIDER_XML_URL)%'
+
+    # Provider Aggregator with explicit providers
+    App\Infrastructure\Provider\ProviderAggregator:
+        arguments:
+            $providers:
+                - '@App\Infrastructure\Provider\JsonProvider'
+                - '@App\Infrastructure\Provider\XmlProvider'
+
+    # Rate Limiter Event Subscriber
+    App\Infrastructure\RateLimiter\ApiRateLimiterSubscriber:
+        arguments:
+            $apiLimitLimiter: '@limiter.api_limit'
+        tags:
+            - { name: kernel.event_subscriber }
